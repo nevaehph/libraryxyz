@@ -1,0 +1,54 @@
+@font-face {
+  font-family: Pacifico;
+  src: url("/public/font/Pacifico-Regular.ttf");
+}
+
+.navbar-toggler {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.navbar-toggler span {
+  filter: invert(100%);
+  -webkit-filter: invert(100%);
+}
+
+.navbar-toggler:focus {
+  box-shadow: none;
+}
+
+.top-navbar {
+  background-color: #465258;
+  color: white;
+}
+
+.navbar-brand {
+  color: white;
+  transition: all 0.25s ease-in-out;
+  font-family: Pacifico;
+}
+
+.navbar-brand:focus,
+.navbar-brand:hover {
+  color: #cecac1;
+}
+
+.navbar-nav a {
+  color: white;
+  border-radius: 5px;
+}
+
+.navbar-nav a:focus,
+.navbar-nav a:hover {
+  color: white !important;
+  background-color: #75847c;
+  border-radius: 5px;
+}
+
+@media screen and (max-width: 991px) {
+  .navbar-nav {
+    margin-top: 10px;
+  }
+  .navbar-nav a {
+    padding-left: 10px;
+  }
+}
