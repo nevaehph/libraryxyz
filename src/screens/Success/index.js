@@ -10,8 +10,8 @@ const Success = () => {
 
   const detailSort = [
     { id: "name", title: "Name" },
-    { id: "nric", title: "NRIC" },
     { id: "podNumber", title: "Pod Number" },
+    { id: "podLocation", title: "Pod Location" },
     { id: "date", title: "Date of Booking" },
     { id: "timing", title: "Timing of Booking" },
     { id: "duration", title: "Duration of Booking" },
@@ -35,7 +35,9 @@ const Success = () => {
           return (
             <tr key={item.id}>
               <td>{item.title}</td>
-              <td>{detailInfo}</td>
+              <td>
+                <div>{detailInfo}</div>
+              </td>
             </tr>
           );
         } else {
