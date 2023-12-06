@@ -1,7 +1,7 @@
 # Library XYZ
 
 ## Introduction
-An Online Web Portal setup made for the purpose of Tech Assessment. The Home Page features the Library Pod Booking Form which upon submission, displays to the user an ackowledgement page with the details from the prioer Booking Form.
+An Online Web Portal setup made for the purpose of Tech Assessment. The Home Page features the Library Pod Booking Form which upon submission, displays to the user an ackowledgement page with the details from the prior page's form.
 
 ## Setup Instructions
 1. Clone the respository
