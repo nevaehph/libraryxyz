@@ -1,0 +1,22 @@
+.success-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.success-box .tick {
+  width: 15%;
+}
+
+.booking-details td {
+  padding: 10px;
+}
+
+.booking-details td:nth-child(odd) {
+  font-weight: bold;
+}
+
+.booking-details td:nth-child(even) {
+  text-align: right;
+}

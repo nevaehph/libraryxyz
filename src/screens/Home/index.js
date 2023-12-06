@@ -5,21 +5,27 @@ import Form from "react-bootstrap/Form";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Col from "react-bootstrap/Col";
 import Row from "react-bootstrap/Row";
 
 const formSchema = yup.object({
-  name: yup.string().required(),
+  name: yup.string().required("Name is required"),
   nric: yup
     .string()
+    .required("NRIC is required")
     .matches(/^[STFG]\d{7}[A-Z]$/, {
       message: "Invalid NRIC",
       excludeEmptyString: false,
     }),
-  date: yup.date().required("Please select a Date"),
-  timing: yup.string().required(),
-  duration: yup.string().required(),
+  podNumber: yup.number().required("Pod Number is required"),
+  date: yup
+    .date()
+    .required("Please select a Date")
+    .min(new Date(), "Please select a valid Date"),
+  timing: yup.string().required("Please select a Timing"),
+  duration: yup.string().required("Please select a Duration"),
 });
 
 const roomInformation = [
@@ -86,6 +92,16 @@ const Home = (props) => {
   const [locationValue, setLocationValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const navigate = useNavigate();
+
+  const setMinValue = () => {
+    let currentDate = new Date();
+    return `${currentDate.getUTCFullYear()}-${(
+      "0" +
+      (currentDate.getUTCMonth() + 1)
+    ).slice(-2)}-${("0" + currentDate.getDate()).slice(-2)}`;
+  };
+
   const onPodChange = (event) => {
     const value = event.target.value;
     setValue("podNumber", value);
@@ -111,10 +127,14 @@ const Home = (props) => {
     setIsLoading(true);
 
     setTimeout(() => {
-      console.log("setting false");
       setIsLoading(false);
-    }, 5000);
+      navigate("/success", { state: data });
+    }, 2000);
   };
+
+  useEffect(() => {
+    console.log({ errors });
+  }, [errors]);
 
   return (
     <Container className="content-container">
@@ -129,9 +149,19 @@ const Home = (props) => {
                 name="name"
                 control={control}
                 render={({ field }) => (
-                  <Form.Control type="text" placeholder="Name" {...field} />
+                  <Form.Control
+                    isInvalid={errors.name}
+                    type="text"
+                    placeholder="Name"
+                    {...field}
+                  />
                 )}
               />
+              {errors.name && (
+                <Form.Control.Feedback type="invalid">
+                  {errors.name.message}
+                </Form.Control.Feedback>
+              )}
             </Form.Group>
             <Form.Group as={Col}>
               <Form.Label htmlFor="nric">NRIC</Form.Label>
@@ -142,12 +172,18 @@ const Home = (props) => {
                 render={({ field }) => (
                   <Form.Control
                     disabled={isLoading}
+                    isInvalid={errors.nric}
                     type="text"
                     placeholder="NRIC No."
                     {...field}
                   />
                 )}
               />
+              {errors.nric && (
+                <Form.Control.Feedback type="invalid">
+                  {errors.nric.message}
+                </Form.Control.Feedback>
+              )}
             </Form.Group>
           </Row>
           <Form.Group className="mb-3">
@@ -158,7 +194,11 @@ const Home = (props) => {
               control={control}
               render={({ field }) => {
                 return (
-                  <Form.Select {...field} onChange={onPodChange}>
+                  <Form.Select
+                    isInvalid={errors.podNumber}
+                    {...field}
+                    onChange={onPodChange}
+                  >
                     <option value="">Select a value</option>
                     {roomInformation.map((item) => {
                       return (
@@ -171,6 +211,11 @@ const Home = (props) => {
                 );
               }}
             />
+            {errors.podNumber && (
+              <Form.Control.Feedback type="invalid">
+                {errors.podNumber.message}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
           <Form.Group className="mb-3">
             <Form.Label htmlFor="podLocation">Pod Location</Form.Label>
@@ -193,10 +238,16 @@ const Home = (props) => {
                   type="date"
                   placeholder="Select Date"
                   {...field}
-                  min={new Date().toISOString().split("T")[0]}
+                  isInvalid={errors.date}
+                  min={setMinValue()}
                 />
               )}
             />
+            {errors.date && (
+              <Form.Control.Feedback type="invalid">
+                {errors.date.message}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
           <Form.Group className="mb-3">
             <Form.Label htmlFor="timing">Timing of Booking</Form.Label>
@@ -206,7 +257,7 @@ const Home = (props) => {
               control={control}
               render={({ field }) => {
                 return (
-                  <Form.Select {...field}>
+                  <Form.Select {...field} isInvalid={errors.timing}>
                     <option value="">Select a value</option>
                     <option value="12:00PM">12:00PM</option>
                     <option value="12:30PM">12:30PM</option>
@@ -215,6 +266,11 @@ const Home = (props) => {
                 );
               }}
             />
+            {errors.timing && (
+              <Form.Control.Feedback type="invalid">
+                {errors.timing.message}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
           <Form.Group className="mb-4">
             <Form.Label htmlFor="timing">Duration of Booking</Form.Label>
@@ -224,7 +280,7 @@ const Home = (props) => {
               control={control}
               render={({ field }) => {
                 return (
-                  <Form.Select {...field}>
+                  <Form.Select {...field} isInvalid={errors.duration}>
                     <option value="">Select a value</option>
                     <option value="30">30 Minutes</option>
                     <option value="60">1 Hour</option>
@@ -234,6 +290,11 @@ const Home = (props) => {
                 );
               }}
             />
+            {errors.duration && (
+              <Form.Control.Feedback type="invalid">
+                {errors.duration.message}
+              </Form.Control.Feedback>
+            )}
           </Form.Group>
           <Form.Group className="mb-1 d-grid gap-2">
             <Button
