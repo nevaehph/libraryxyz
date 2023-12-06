@@ -1,25 +1,9 @@
-const parseMonth = (month) => {
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  return months[month];
-};
+import parseMonth from "./parseMonth";
 
 const parseDateString = (date) => {
-  return `${date.getUTCDate()} ${parseMonth(
-    date.getUTCMonth()
-  )} ${date.getUTCFullYear()}`;
+  return `${date.getDate()} ${parseMonth(
+    date.getMonth()
+  )} ${date.getFullYear()}`;
 };
 
 export default parseDateString;

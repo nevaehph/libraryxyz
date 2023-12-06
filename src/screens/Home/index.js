@@ -10,6 +10,11 @@ import { useNavigate } from "react-router-dom";
 import Col from "react-bootstrap/Col";
 import Row from "react-bootstrap/Row";
 
+import parseMonth from "../../lib/parseMonth";
+import parseTimeString from "../../lib/parseTimeString";
+import parseTime from "../../lib/parseTime";
+import parseDuration from "../../lib/parseDuration";
+
 const formSchema = yup.object({
   name: yup.string().required("Name is required"),
   nric: yup
@@ -19,13 +24,20 @@ const formSchema = yup.object({
       message: "Invalid NRIC",
       excludeEmptyString: false,
     }),
-  podNumber: yup.number().required("Pod Number is required"),
+  podNumber: yup
+    .number()
+    .typeError("Pod Number is required")
+    .required("Pod Number is required"),
   date: yup
     .date()
+    .typeError("Please select a Date")
     .required("Please select a Date")
-    .min(new Date(), "Please select a valid Date"),
+    .min(
+      new Date(new Date().setHours(0, 0, 0, 0)),
+      "Please select a valid Date"
+    ),
   timing: yup.string().required("Please select a Timing"),
-  duration: yup.string().required("Please select a Duration"),
+  duration: yup.number().required("Please select a Duration"),
 });
 
 const roomInformation = [
@@ -83,14 +95,31 @@ const Home = (props) => {
   const {
     handleSubmit,
     control,
+    getValues,
     setValue,
+    setError,
+    clearErrors,
     formState: { errors },
   } = useForm({
+    defaultValues: {
+      name: "",
+      nric: "",
+      date: "",
+    },
     resolver: yupResolver(formSchema),
   });
 
+  //opening and closing times in XX:XX:XX (24 hour format)
+  const openingTime = "12:00:00";
+  const closingTime = "20:00:00";
+
+  //base duration values (in minutes)
+  let baseDurations = [30, 60, 90, 120];
+
   const [locationValue, setLocationValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [timingOptions, setTimingOptions] = useState([]);
+  const [durationOptions, setDurationOptions] = useState([]);
 
   const navigate = useNavigate();
 
@@ -102,13 +131,76 @@ const Home = (props) => {
     ).slice(-2)}-${("0" + currentDate.getDate()).slice(-2)}`;
   };
 
+  const determineTiming = (selectedDate) => {
+    let timings = [];
+    let isToday = false;
+    let openingDate = new Date(
+      `${parseMonth(
+        selectedDate.getMonth()
+      )} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}, ${openingTime}`
+    );
+    //if the selectedDate is today, remove timings that have already passed the current time
+    if (selectedDate.setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)) {
+      isToday = true;
+    }
+    let closingDate = new Date(
+      `${parseMonth(
+        selectedDate.getMonth()
+      )} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}, ${closingTime}`
+    );
+    const thirtyMinutesInMillis = 30 * 60 * 1000;
+    const currentTime = new Date().getTime();
+    while (openingDate.getTime() < closingDate.getTime()) {
+      let openingDateTime = openingDate.getTime();
+      if (isToday) {
+        if (openingDateTime > currentTime) {
+          timings.push(parseTimeString(openingDate));
+        }
+      } else {
+        timings.push(parseTimeString(openingDate));
+      }
+
+      openingDate.setTime(openingDateTime + thirtyMinutesInMillis);
+    }
+    return timings;
+  };
+
+  const determineDuration = (time) => {
+    //use current date as the placeholder to generate the dates for comparison
+    let date = new Date(new Date().setHours(0, 0, 0, 0));
+    let timeString = parseTime(time);
+    let durationArray = [];
+
+    let selectedDate = new Date(
+      `${parseMonth(
+        date.getMonth()
+      )} ${date.getDate()}, ${date.getFullYear()}, ${timeString}`
+    );
+
+    let closingDate = new Date(
+      `${parseMonth(
+        date.getMonth()
+      )} ${date.getDate()}, ${date.getFullYear()}, ${closingTime}`
+    );
+
+    for (var i = 0; i < baseDurations.length; i++) {
+      let millisToAdd = baseDurations[i] * 60 * 1000;
+      let compareDate = new Date(selectedDate.getTime() + millisToAdd);
+      if (compareDate <= closingDate.getTime()) {
+        durationArray.push(baseDurations[i]);
+      }
+    }
+
+    return durationArray;
+  };
+
   const onPodChange = (event) => {
     const value = event.target.value;
     setValue("podNumber", value);
-    if (value != "") {
+    if (value !== "") {
       setLocationValue(
         applyLocationText(
-          roomInformation.find((ele) => ele.podNumber == parseInt(value))
+          roomInformation.find((ele) => ele.podNumber === parseInt(value))
         )
       );
     } else {
@@ -116,13 +208,83 @@ const Home = (props) => {
     }
   };
 
+  const onDateChange = (event) => {
+    const value = event.target.value;
+    let date = new Date(value);
+    setValue("date", value);
+    let timingArray = determineTiming(date);
+    if (timingArray.length <= 0) {
+      setError("date", {
+        type: "custom",
+        message:
+          "Library Pods are no longer available for this date, please select another date",
+      });
+    } else {
+      clearErrors("date");
+    }
+    setTimingOptions(timingArray);
+  };
+
+  const onTimingChange = (event) => {
+    const value = event.target.value;
+    setValue("timing", value);
+    clearErrors("timing");
+    setDurationOptions(determineDuration(value));
+  };
+
   const applyLocationText = (locationObj) => {
+    if (!locationObj) {
+      return "";
+    }
     return `Room Color: ${locationObj.roomColor}\nRoom Size: ${locationObj.size}\nMax Occupants: ${locationObj.maxOccupants}`;
   };
 
-  const onSubmit = (data) => {
-    console.log({ data });
+  useEffect(() => {
+    if (timingOptions.length > 0) {
+      if (timingOptions.indexOf(getValues("timing")) === -1) {
+        setValue("timing", null);
+        setDurationOptions([]);
+        setValue("duration", null);
+      }
+    } else {
+      setValue("timing", null);
+      setDurationOptions([]);
+      setValue("duration", null);
+    }
+  }, [timingOptions, getValues, setValue]);
 
+  useEffect(() => {
+    if (durationOptions.length > 0) {
+      if (durationOptions.indexOf(parseInt(getValues("duration"))) === -1) {
+        setValue("duration", null);
+      }
+    } else {
+      setValue("duration", null);
+    }
+  }, [durationOptions, getValues, setValue]);
+
+  const onSubmit = (data) => {
+    clearErrors();
+    let selectedDate = new Date(
+      `${parseMonth(
+        data.date.getMonth()
+      )} ${data.date.getDate()}, ${data.date.getFullYear()}, ${parseTime(
+        data.timing
+      )}`
+    );
+    if (selectedDate.getTime() <= new Date().getTime()) {
+      setError("timing", {
+        type: "custom",
+        message:
+          "The selected Timing of Booking has already passed. Please select a different timing",
+      });
+      setError("date", {
+        type: "custom",
+        message:
+          "The selected Timing of Booking has already passed. Please select a different timing",
+      });
+      return;
+    }
     //simulate API Call
     setIsLoading(true);
 
@@ -132,9 +294,32 @@ const Home = (props) => {
     }, 2000);
   };
 
-  useEffect(() => {
-    console.log({ errors });
-  }, [errors]);
+  const loadTimingOptions = (options) => {
+    if (options.length > 0) {
+      return options.map((item) => {
+        return (
+          <option key={item} value={item}>
+            {item}
+          </option>
+        );
+      });
+    }
+    return null;
+  };
+
+  const loadDurationOptions = (options) => {
+    if (options.length > 0) {
+      return options.map((item) => {
+        var name = parseDuration(item);
+        return (
+          <option key={item} value={item}>
+            {name} {item <= 60 ? "Hour" : "Hours"}
+          </option>
+        );
+      });
+    }
+    return null;
+  };
 
   return (
     <Container className="content-container">
@@ -199,7 +384,7 @@ const Home = (props) => {
                     {...field}
                     onChange={onPodChange}
                   >
-                    <option value="">Select a value</option>
+                    <option value>Select a value</option>
                     {roomInformation.map((item) => {
                       return (
                         <option key={item.podNumber} value={item.podNumber}>
@@ -240,6 +425,7 @@ const Home = (props) => {
                   {...field}
                   isInvalid={errors.date}
                   min={setMinValue()}
+                  onChange={onDateChange}
                 />
               )}
             />
@@ -257,11 +443,13 @@ const Home = (props) => {
               control={control}
               render={({ field }) => {
                 return (
-                  <Form.Select {...field} isInvalid={errors.timing}>
-                    <option value="">Select a value</option>
-                    <option value="12:00PM">12:00PM</option>
-                    <option value="12:30PM">12:30PM</option>
-                    <option value="1:00PM">1:00PM</option>
+                  <Form.Select
+                    {...field}
+                    isInvalid={errors.timing}
+                    onChange={onTimingChange}
+                  >
+                    <option value>Select a value</option>
+                    {loadTimingOptions(timingOptions)}
                   </Form.Select>
                 );
               }}
@@ -281,11 +469,8 @@ const Home = (props) => {
               render={({ field }) => {
                 return (
                   <Form.Select {...field} isInvalid={errors.duration}>
-                    <option value="">Select a value</option>
-                    <option value="30">30 Minutes</option>
-                    <option value="60">1 Hour</option>
-                    <option value="90">1.5 Hours</option>
-                    <option value="120">2 Hours</option>
+                    <option value>Select a value</option>
+                    {loadDurationOptions(durationOptions)}
                   </Form.Select>
                 );
               }}

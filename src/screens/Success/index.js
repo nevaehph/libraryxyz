@@ -26,9 +26,9 @@ const Success = () => {
       return detailSort.map((item) => {
         if (data[item.id]) {
           let detailInfo =
-            item.id == "duration"
+            item.id === "duration"
               ? `${parseDuration(data[item.id])} Hour(s)`
-              : item.id == "date"
+              : item.id === "date"
               ? parseDateString(data[item.id])
               : data[item.id];
 
@@ -38,6 +38,8 @@ const Success = () => {
               <td>{detailInfo}</td>
             </tr>
           );
+        } else {
+          return null;
         }
       });
     } else {

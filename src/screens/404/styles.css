@@ -1,0 +1,10 @@
+.not-found {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.not-found h1 {
+  font-size: 7rem;
+}

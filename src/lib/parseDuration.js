@@ -1,5 +1,4 @@
-const parseDuration = (timeString) => {
-  const time = parseFloat(timeString);
+const parseDuration = (time) => {
   return time / 60;
 };
 
